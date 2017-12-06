@@ -6,17 +6,17 @@ Pong is one of the earliest arcade video games. It is a table tennis sports game
 
 
 ## Instructions:
-1.Under the default direction open "shape-motion-demo" folder.
+1.Open the Game folder
 
-2.Inside the folder, type make load to run the game.
+2.Inside the folder, type make clean and make load to run the game.
 
 3.On the MSP430:
-    (Red):
-        Push S1: Up.
-        Push S2: Down.
-    (Blue):
-        Push S3: up.
-        Push S4: Down.
+    (Player 1)
+        Push S1: Left.
+        Push S2: Right.
+    (Palyer 2):
+        Push S3: Left.
+        Push S4: Right.
 
 
 ## To compile:
