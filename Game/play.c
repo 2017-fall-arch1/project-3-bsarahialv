@@ -2,7 +2,7 @@
  *  \brief 
  * Author:Bianca Alvarez
  * Instructor: Eric Freudental
- * This is a simple pog game.
+ * This is a simple pog game with obstacles.
  *  This demo creates several layers containing shapes (rectangles for the paddles and cirlce for the ball).
  *  While the CPU is running the green LED is on, and
  *  when the screen does not need to be redrawn the CPU
@@ -15,6 +15,7 @@
 #include <p2switches.h>
 #include <shape.h>
 #include <abCircle.h>
+#include "buzzer.h"
 
 #define GREEN_LED BIT6
 
@@ -32,7 +33,10 @@ unsigned int bgColor = COLOR_NAVY;
 //Rectangle for Paddles
 AbRect rect10 = {abRectGetBounds, abRectCheck, {4,15}}; 
 
-//AbRArrow rightArrow = {abRArrowGetBounds, abRArrowCheck, 30};
+//Squares (obstacles)
+AbRect rect20 = {abRectGetBounds, abRectCheck, {5,5}}; 
+
+
  
 unsigned int paddle_one; //player 1
 unsigned int paddle_two; //player 2
@@ -49,27 +53,26 @@ AbRectOutline fieldOutline = {
   {screenWidth/2 - 10, screenHeight/2 - 10}
 };
 
-//Layer for snowball
-Layer layer5 = {		
-  (AbShape *)&circle2,
-  {screenWidth-15, screenHeight-15}, 
+//Layer for square in the middle (obtacle)
+Layer layer6 = {
+  (AbShape *)&rect20,
+  {(screenWidth/2)-10, (screenHeight/2)+10},
   {0,0}, {0,0},				    
-  COLOR_WHITE,
+  COLOR_GREEN,
   0
 };
 
-
-//Layer for rectangle in the middle
+//Layer for square in the middle (obtacle)
 Layer layer4 = {
-  (AbShape *)&rect10,
+  (AbShape *)&rect20,
   {screenWidth/2, screenHeight/2},
   {0,0}, {0,0},				    
   COLOR_GREEN,
-  &layer5
+  &layer6
 };
   
 //Layer for play ball
-Layer layer3 = {		/**< Layer with an orange circle */
+Layer layer3 = {		/**< Layer with white ball */
   (AbShape *)&circle5,
   {(screenWidth/2)+10, (screenHeight/2)+5}, 
   {0,0}, {0,0},				    
@@ -118,8 +121,9 @@ typedef struct MovLayer_s {
 
 
 //Layer 4 doesn't move
-MovLayer ml5 = { &layer5, {2,0}, 0 }; 
-MovLayer ml3 = { &layer3, {3,3}, 0 }; 
+MovLayer ml6 = { &layer6, {0,2}, 0 }; 
+MovLayer ml4 = { &layer4, {0,2}, &ml6 }; 
+MovLayer ml3 = { &layer3, {3,3}, &ml4 }; 
 MovLayer ml1 = { &layer1, {0,0}, &ml3 }; //layer not moving
 MovLayer ml0 = { &layer0, {0,0}, &ml1 }; //layer not moving
 
@@ -182,14 +186,10 @@ void mlAdvance(MovLayer *ml, Region *fence)
       if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) || 
           (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis]) ) {
           
-          if((shapeBoundary.topLeft.axes[0] < fence->topLeft.axes[axis])){
-              //newPos.axes[0] = (screenWidth/2)+10; 
-              //newPos.axes[1] = (screenHeight/2)+5;
+          if((shapeBoundary.topLeft.axes[0] < fence->topLeft.axes[0])){
               playerScores(0,1); //keeps track of score
           }
-          if ((shapeBoundary.botRight.axes[0] > fence->botRight.axes[axis])){
-              //newPos.axes[0] = (screenWidth/2)+10;
-              //newPos.axes[1] = (screenHeight/2)+5;
+          if ((shapeBoundary.botRight.axes[0] > fence->botRight.axes[0])){
               playerScores(1,0); // keeps track of score 
           }
           int velocity = ml->velocity.axes[axis] = -ml->velocity.axes[axis];
@@ -201,7 +201,7 @@ void mlAdvance(MovLayer *ml, Region *fence)
 }
 
 //makes ball bounce when it hits the pad 
-void checkForCollision(MovLayer *ball, MovLayer *pad){
+void Bouncing(MovLayer *ball, MovLayer *pad){
      Region padBounday;
      Region ballBoundary;
      Vec2 coordinates;
@@ -214,31 +214,46 @@ void checkForCollision(MovLayer *ball, MovLayer *pad){
      if(abShapeCheck(pad->layer->abShape, &pad->layer->pos, &ballBoundary.topLeft) ||
          abShapeCheck(pad->layer->abShape, &pad->layer->pos, &ballBoundary.botRight) ){
          
-                 int velocity = ball->velocity.axes[0] = -ball->velocity.axes[0];
-                 coordinates.axes[0] += (2*velocity);
-                 //buzzer_set_period(1500); //hit sound 
-             
-         
+         int velocity = ball->velocity.axes[0] = -ball->velocity.axes[0];
+     coordinates.axes[0] += (2*velocity);
+
      }
  }
  
 
 
- //keeps track of score 
+ //To select Winner
  void playerScores(u_int score1, u_int score2) {
      paddle_one += score1;
      paddle_two += score2;
-     char str[] = {'0','1','2','3','4'};
+     char str[] = {'0','1','2','3','4', '5', '6'};
      char scrs[] = {str[paddle_one], '-', str[paddle_two], '\0'}; 
-     drawString5x7(0,0, "   ", COLOR_NAVY, COLOR_WHITE);
-     drawString5x7(20,0, "COMP ARCHITECTURE   ", COLOR_WHITE, COLOR_NAVY);
-     
-     drawString5x7(0,152, "   ", COLOR_NAVY, COLOR_WHITE);
-     drawString5x7(20,152, "P1", COLOR_WHITE, COLOR_NAVY);
-     drawString5x7(80,152, "P2", COLOR_WHITE, COLOR_NAVY);
+     //Design TOP BANNER
+     drawString5x7(0,0, "  ", COLOR_NAVY, COLOR_WHITE);
+     drawString5x7(10,0, " COMP ARCHITECTURE ", COLOR_WHITE, COLOR_NAVY);
+     drawString5x7(120,0, "  ", COLOR_NAVY, COLOR_WHITE);
+     //DESIGN BOTTOM SCORES
+     drawString5x7(0,152, "  ", COLOR_NAVY, COLOR_WHITE);
+     drawString5x7(20,152, "P1", COLOR_RED, COLOR_NAVY);
+     drawString5x7(100,152, "P2", COLOR_GOLD, COLOR_NAVY);
      drawString5x7(55,152, scrs, COLOR_WHITE, COLOR_NAVY);
-     
-     fillRectangle(30,30, 4 , 15, COLOR_ORANGE);
+     drawString5x7(120,152, "  ", COLOR_NAVY, COLOR_WHITE);
+     //DESIGN BORDER LEFT
+     fillRectangle(0, 10, 10 , 10, COLOR_WHITE);
+     fillRectangle(0, 30, 10 , 10, COLOR_WHITE);
+     fillRectangle(0, 50, 10 , 10, COLOR_WHITE);
+     fillRectangle(0, 70, 10 , 10, COLOR_WHITE);
+     fillRectangle(0, 90, 10 , 10, COLOR_WHITE);
+     fillRectangle(0, 110, 10 , 10, COLOR_WHITE);
+     fillRectangle(0, 130, 10 , 10, COLOR_WHITE);
+     //DESIGN BORDER RIGHT
+     fillRectangle(120, 10, 10 , 10, COLOR_WHITE);
+     fillRectangle(120, 30, 10 , 10, COLOR_WHITE);
+     fillRectangle(120, 50, 10 , 10, COLOR_WHITE);
+     fillRectangle(120, 70, 10 , 10, COLOR_WHITE);
+     fillRectangle(120, 90, 10 , 10, COLOR_WHITE);
+     fillRectangle(120, 110, 10 , 10, COLOR_WHITE);
+     fillRectangle(120, 130, 10 , 10, COLOR_WHITE);
  }
 /** Initializes everything, enables interrupts and green LED, 
  *  and handles the rendering for the screen
@@ -247,7 +262,7 @@ void main()
 {
   P1DIR |= GREEN_LED;		/**< Green led on when CPU on */		
   P1OUT |= GREEN_LED;
-
+//buzzer_init(); 
   configureClocks();
   lcd_init();
   shapeInit();
@@ -260,7 +275,7 @@ void main()
 
 
   layerGetBounds(&fieldLayer, &fieldFence);
-
+  
 
   enableWDTInterrupts();      /**< enable periodic interrupt */
   or_sr(0x8);	              /**< GIE (enable interrupts) */
@@ -284,36 +299,84 @@ void wdt_c_handler()
   P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
   count ++;
   
-  // to see which player won 
-   if(paddle_one == 4 ){
-         //clearScreen(COLOR_BLUE); 
-        clearScreen(COLOR_BLUE);
-         drawString5x7(20,60, "Player 1 Wins!!", COLOR_GREEN, COLOR_BLACK);
-         ml5.velocity.axes[0] = 0; 
-         ml5.velocity.axes[1] = 0;
-         
-         //make_note();
+  // CLEAR SCREEN --> RESULT WINNER  
+   if(paddle_one == 6 ){
+       //set the screen to the winner color
+       clearScreen(COLOR_RED);
+      
+       drawString5x7(20,60, "    Winner!", COLOR_WHITE, COLOR_RED);
+       drawString5x7(20,100, "    Player 1", COLOR_WHITE, COLOR_RED);
+       //DESIGN BORDERS
+       fillRectangle(0, 10, 10 , 10, COLOR_WHITE);
+       fillRectangle(0, 30, 10 , 10, COLOR_WHITE);
+       fillRectangle(0, 50, 10 , 10, COLOR_WHITE);
+       fillRectangle(0, 70, 10 , 10, COLOR_WHITE);
+       fillRectangle(0, 90, 10 , 10, COLOR_WHITE);
+       fillRectangle(0, 110, 10 , 10, COLOR_WHITE);
+       fillRectangle(0, 130, 10 , 10, COLOR_WHITE);
+       fillRectangle(0, 150, 10 , 10, COLOR_WHITE);
+       fillRectangle(120, 10, 10 , 10, COLOR_WHITE);
+       fillRectangle(120, 30, 10 , 10, COLOR_WHITE);
+       fillRectangle(120, 50, 10 , 10, COLOR_WHITE);
+       fillRectangle(120, 70, 10 , 10, COLOR_WHITE);
+       fillRectangle(120, 90, 10 , 10, COLOR_WHITE);
+       fillRectangle(120, 110, 10 , 10, COLOR_WHITE);
+       fillRectangle(120, 130, 10 , 10, COLOR_WHITE);
+       fillRectangle(120, 150, 10 , 10, COLOR_WHITE);
+       
+       //FOR SOUND--> SOUND WHILE CLEAR SCREEN
+       int count =6;
+       while(count>0){
+           buzzer_init();
+           enableWDTInterrupts(); /*enable wd timer*/
+           buzzer_advance_frequency();
+           count = count -1;
+           
+        }
      }
-     if(paddle_two == 4){
-         //clearScreen(COLOR_BLACK); 
-         clearScreen(COLOR_BLUE);
-         drawString5x7(20,60, "Player 2 Wins!!", COLOR_GREEN, COLOR_BLACK);
-         ml5.velocity.axes[0] = 0; 
-         ml5.velocity.axes[1] = 0;
+     if(paddle_two == 6){
+         //set the screen to the winner color
+         clearScreen(COLOR_GOLD);
+
+         drawString5x7(20,60, "    Winner!", COLOR_BLACK, COLOR_GOLD);
+         drawString5x7(20,100, "    Player 2", COLOR_BLACK, COLOR_GOLD);
+        // DESIGN BORDERS 
+         fillRectangle(0, 10, 10 , 10, COLOR_BLACK);
+         fillRectangle(0, 30, 10 , 10, COLOR_BLACK);
+         fillRectangle(0, 50, 10 , 10, COLOR_BLACK);
+         fillRectangle(0, 70, 10 , 10, COLOR_BLACK);
+         fillRectangle(0, 90, 10 , 10, COLOR_BLACK);
+         fillRectangle(0, 110, 10 , 10, COLOR_BLACK);
+         fillRectangle(0, 130, 10 , 10, COLOR_BLACK);
+         fillRectangle(0, 150, 10 , 10, COLOR_BLACK);
+         fillRectangle(120, 10, 10 , 10, COLOR_BLACK);
+         fillRectangle(120, 30, 10 , 10, COLOR_BLACK);
+         fillRectangle(120, 50, 10 , 10, COLOR_BLACK);
+         fillRectangle(120, 70, 10 , 10, COLOR_BLACK);
+         fillRectangle(120, 90, 10 , 10, COLOR_BLACK);
+         fillRectangle(120, 110, 10 , 10, COLOR_BLACK);
+         fillRectangle(120, 130, 10 , 10, COLOR_BLACK);
+         fillRectangle(120, 150, 10 , 10, COLOR_BLACK);
          
-         //make_note();
+         //FOR SOUND--> SOUND WHILE CLEAR SCREEN
+         int count =6;
+        while(count>0){
+              buzzer_init();
+            buzzer_advance_frequency();
+            enableWDTInterrupts(); /*enable wd timer*/
+            count = count -1;
+                   
+        }
+
      }
+     
+     
   if (count == 15) {
-    //checkForCollision(&ml3,&ml1);
-    //checkForCollision(&ml3,&ml0);
-    //mlAdvance(&ml0, &fieldFence);
-    //if (p2sw_read())
-      //redrawScreen = 1;
-    //count = 0;
-      //before reaching winning points 
-     if(paddle_one < 4 && paddle_two < 4){
-         checkForCollision(&ml3,&ml1);
-         checkForCollision(&ml3,&ml0);
+
+     if(paddle_one < 6 && paddle_two < 6){
+         Bouncing(&ml3,&ml1);
+         Bouncing(&ml3,&ml0);
+         Bouncing(&ml3,&ml4);
          mlAdvance(&ml0, &fieldFence);
          u_int switches = p2sw_read(), i;
          char str[5];
@@ -321,19 +384,33 @@ void wdt_c_handler()
              str[i] = (switches & (1<<i)) ? 0 : 1;
          str[4] = 0;
          
-         if(str[0]){
+         
+         //FOR SWITCHES
+         //Left
+         if(str[1]){
+             buzzer_init2();
+             enableWDTInterrupts();
              ml0.velocity.axes[0] = 0; 
              ml0.velocity.axes[1] = -5;
+             
          }
-         if(str[1]){
+         
+         //Right
+         if(str[0]){
+             buzzer_init2();
+             enableWDTInterrupts();
              ml0.velocity.axes[0] = 0; 
              ml0.velocity.axes[1] = 5;
          }
-         if(str[2]){
+         if(str[3]){
+             buzzer_init2();
+             enableWDTInterrupts();
              ml1.velocity.axes[0] = 0; 
              ml1.velocity.axes[1] = -5;
          }
-         if(str[3]){
+         if(str[2]){
+             buzzer_init2();
+             enableWDTInterrupts();
              ml1.velocity.axes[0] = 0; 
              ml1.velocity.axes[1] = 5;
          }
@@ -352,3 +429,5 @@ void wdt_c_handler()
   } 
   P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */
 }
+
+

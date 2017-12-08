@@ -10,7 +10,7 @@ AS              = msp430-elf-gcc -mmcu=${CPU} -c
 all:play.elf
 
 #additional rules for files
-play.elf: ${COMMON_OBJECTS} play.o wdt_handler.o
+play.elf: ${COMMON_OBJECTS} play.o wdt_handler.o buzzer.o statesMachines.o led.o
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^ -lTimer -lLcd -lShape -lCircle -lp2sw
 
 load: play.elf
